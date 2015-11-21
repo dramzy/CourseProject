@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Course Project</string>
+    <string name="title_activity_view_post">ViewPostActivity</string>
+    <string name="title_activity_create_post">CreatePostActivity</string>
+    <color name="postbg">#ffffff</color>
+    <color name="appColor">#00bfff</color>
+    <color name="appAccent">#7ec0ee</color>
+    <string name="title_activity_splash_screen">Course project</string>
+</resources>
