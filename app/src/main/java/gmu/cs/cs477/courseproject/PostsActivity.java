@@ -17,6 +17,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.firebase.client.Firebase;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -73,6 +74,9 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 loadData();
             }
         });
+        Firebase.setAndroidContext(this);
+        Firebase myFirebaseRef = new Firebase("https://fiery-fire-1976.firebaseio.com/");
+        myFirebaseRef.child("message").setValue("Do you have data? You'll love Firebase.");
     }
 
     @Override
