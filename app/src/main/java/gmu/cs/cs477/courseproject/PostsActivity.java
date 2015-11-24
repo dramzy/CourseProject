@@ -185,11 +185,12 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
             ref.addValueEventListener(new ValueEventListener() {//Looking at posts in the cloud database
                 @Override
                 public void onDataChange(DataSnapshot snapshot) {
+                    Toast.makeText(getApplicationContext(), "Latitude: " + lat + "\nLongitude: " + lng, Toast.LENGTH_SHORT).show();
                     int i = 0;
                     for (DataSnapshot postSnapshot: snapshot.getChildren()) {
                         QueryPosts post = postSnapshot.getValue(QueryPosts.class);
                         double distance = getDistanceFromLatLonInKm((double)post.getLatitude(), (double)post.getLongitude(), lat, lng);//Distance between current lat,long and post lat, long
-                        if(distance < 0.189394){//Message was saved within (roughly)1000 feet
+                        if(distance <= 5){//Message was saved within 5 miles
                             long howLong = new Date().getTime() - post.getTimestamp();
                             if(howLong > 24*60*60*1000){//Post is over 24 hours old
                                 postSnapshot.getRef().removeValue();

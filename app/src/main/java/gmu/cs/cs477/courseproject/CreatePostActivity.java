@@ -228,9 +228,7 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
                 lng = lastLocation .getLongitude();
                 lat = lastLocation .getLatitude();
             }
-            Post post = new Post(0, params[0], new Date().getTime());
-
-            Firebase newPostRef = ref.child(params[0]);
+            Firebase newPostRef = ref.push();
             QueryPosts newPost = new QueryPosts(lat, lng, params[0], new Date().getTime());
             newPostRef.setValue(newPost);
             return null;
