@@ -21,6 +21,8 @@ import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.firebase.client.Firebase;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -43,6 +45,8 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
     private String postText;
     private GoogleApiClient client;
     private Location lastLocation;
+    double lat; double lng;
+    Firebase ref;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +57,11 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
         postButton = (Button) findViewById(R.id.post_button);
         input_wrapper = (RelativeLayout) findViewById(R.id.input_wrapper);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        // Get a reference to our posts in the cloud database
+        Firebase.setAndroidContext(getApplicationContext());
+        ref = new Firebase("https://fiery-fire-1976.firebaseio.com/Posts");
+
         post.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -215,8 +224,15 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
         // Get Posts
         @Override
         protected Void doInBackground(@NonNull final String... params) {
-            Post post = new Post(0, params[0], new Date());
-            //TODO: send post to cloud
+            if(lastLocation != null){
+                lng = lastLocation .getLongitude();
+                lat = lastLocation .getLatitude();
+            }
+            Post post = new Post(0, params[0], new Date().getTime());
+
+            Firebase newPostRef = ref.child(params[0]);
+            QueryPosts newPost = new QueryPosts(lat, lng, params[0], new Date().getTime());
+            newPostRef.setValue(newPost);
             return null;
         }
 
@@ -225,6 +241,5 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
         protected void onPostExecute(Void result) {
             Toast.makeText(getApplicationContext(), "Post created", Toast.LENGTH_SHORT).show();
         }
-
     }
 }

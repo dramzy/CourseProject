@@ -10,6 +10,7 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.format.DateUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -17,7 +18,12 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.firebase.client.ChildEventListener;
+import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.firebase.client.Query;
+import com.firebase.client.ValueEventListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -38,6 +44,10 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     private FloatingActionButton fab;
     private Location lastLocation;
     private GoogleApiClient client;
+    ArrayList<Post> posts;
+    double lng;
+    double lat;
+    Firebase ref;
 
 
     @Override
@@ -62,7 +72,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent intent = new Intent(PostsActivity.this, ViewPostActivity.class);
                 intent.putExtra(POST_TEXT, adapter.getPostText(position));
-                intent.putExtra(POST_TIME, DateUtils.getRelativeTimeSpanString(adapter.getPostTime(position).getTime()));
+                intent.putExtra(POST_TIME, DateUtils.getRelativeTimeSpanString(adapter.getPostTime(position)));
                 startActivity(intent);
             }
         });
@@ -74,9 +84,11 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 loadData();
             }
         });
-        Firebase.setAndroidContext(this);
-        Firebase myFirebaseRef = new Firebase("https://fiery-fire-1976.firebaseio.com/");
-        myFirebaseRef.child("message").setValue("Do you have data? You'll love Firebase.");
+
+        // Get a reference to our posts
+        Firebase.setAndroidContext(getApplicationContext());
+        ref = new Firebase("https://fiery-fire-1976.firebaseio.com/Posts");
+
     }
 
     @Override
@@ -152,7 +164,6 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
      * An AsyncTask class to retrieve and load listview with posts
      */
     private class PostsLoader extends AsyncTask<Void, Void, ArrayList<Post>> {
-
         @Override
         protected void onPreExecute() {
             if (!Utils.isInternetEnabled(getApplicationContext())) {
@@ -166,10 +177,35 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         // Get Posts
         @Override
         protected ArrayList<Post> doInBackground(Void... params) {
-            ArrayList<Post> posts = new ArrayList<>();
-            for (int i = 0; i < 100; i++) {
-                posts.add(new Post(i, "Post number: " + i, new Date()));
+            if(lastLocation != null) {
+                lng = lastLocation .getLongitude();
+                lat = lastLocation .getLatitude();
             }
+            posts = new ArrayList<>();
+            ref.addValueEventListener(new ValueEventListener() {//Looking at posts in the cloud database
+                @Override
+                public void onDataChange(DataSnapshot snapshot) {
+                    int i = 0;
+                    for (DataSnapshot postSnapshot: snapshot.getChildren()) {
+                        QueryPosts post = postSnapshot.getValue(QueryPosts.class);
+                        double distance = getDistanceFromLatLonInKm((double)post.getLatitude(), (double)post.getLongitude(), lat, lng);//Distance between current lat,long and post lat, long
+                        if(distance < 0.189394){//Message was saved within (roughly)1000 feet
+                            long howLong = new Date().getTime() - post.getTimestamp();
+                            if(howLong > 24*60*60*1000){//Post is over 24 hours old
+                                postSnapshot.getRef().removeValue();
+                            }
+                            else {//Post is close enough and not too old
+                                posts.add(new Post(i, post.getMessage(), post.getTimestamp()));
+                            }
+                        }
+                        i++;
+                    }
+                }
+                @Override
+                public void onCancelled(FirebaseError firebaseError) {
+                    System.out.println("The read failed: " + firebaseError.getMessage());
+                }
+            });
             return posts;
         }
 
@@ -194,4 +230,20 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         return super.onOptionsItemSelected(item);
     }
 
+    //Make sure to refactor
+    //Returns distance between two points in feet.
+    double getDistanceFromLatLonInKm(double lat1,double lon1, double lat2,double lon2) {
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+        return dist;
+    }
+    private static double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+    private static double rad2deg(double rad) {
+        return (rad * 180 / Math.PI);
+    }
 }

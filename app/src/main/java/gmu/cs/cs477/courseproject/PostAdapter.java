@@ -44,7 +44,7 @@ public class PostAdapter extends BaseAdapter implements ListAdapter {
         final TextView postText = (TextView) view.findViewById(R.id.postText);
         final TextView postTime = (TextView) view.findViewById(R.id.postTime);
         postText.setText(post.getText());
-        postTime.setText(DateUtils.getRelativeTimeSpanString(post.getTimestamp().getTime()));
+        postTime.setText(DateUtils.getRelativeTimeSpanString(post.getTimestamp()));
         return view;
     }
 
@@ -52,7 +52,7 @@ public class PostAdapter extends BaseAdapter implements ListAdapter {
         return posts.get(position).getText();
     }
 
-    public Date getPostTime(int position){
+    public long getPostTime(int position){
         return posts.get(position).getTimestamp();
     }
 }

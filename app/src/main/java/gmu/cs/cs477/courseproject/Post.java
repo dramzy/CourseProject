@@ -7,19 +7,19 @@ import java.util.Date;
 public class Post {
     private long post_ID;
     private String text;
-    private Date timestamp;
+    private long timestamp;
 
-    public Post(final long post_ID, @NonNull final String text, @NonNull final Date timestamp) {
+    public Post(final long post_ID, @NonNull final String text, @NonNull final long timestamp) {
         this.post_ID = post_ID;
         this.text = text;
         this.timestamp = timestamp;
     }
 
-    public Date getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(@NonNull final Date timestamp) {
+    public void setTimestamp(@NonNull final long timestamp) {
         this.timestamp = timestamp;
     }
 
