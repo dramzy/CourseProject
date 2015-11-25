@@ -23,11 +23,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.client.Firebase;
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
 import static gmu.cs.cs477.courseproject.Constants.LOCATION;
 
 import java.util.Date;
@@ -45,8 +48,7 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
     private String postText;
     private GoogleApiClient client;
     private Location lastLocation;
-    double lat; double lng;
-    Firebase ref;
+    private AppState state;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,10 +59,6 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
         postButton = (Button) findViewById(R.id.post_button);
         input_wrapper = (RelativeLayout) findViewById(R.id.input_wrapper);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        // Get a reference to our posts in the cloud database
-        Firebase.setAndroidContext(getApplicationContext());
-        ref = new Firebase("https://fiery-fire-1976.firebaseio.com/Posts");
 
         post.addTextChangedListener(new TextWatcher() {
             @Override
@@ -81,7 +79,6 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
         postButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //TODO: Try to post
                 postText = post.getText().toString();
                 if (!postText.equals("")) {
                     postText = postText.replace('\n', ' ');
@@ -99,7 +96,7 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
             }
         });
         lastLocation = getIntent().getParcelableExtra(LOCATION);
-
+        state = (AppState) getApplication();
     }
 
     @Override
@@ -152,9 +149,9 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
     }
 
     private void checkGPS() {
-        if (!Utils.isGPSEnabled(this)){
+        if (!Utils.isGPSEnabled(this)) {
             Toast.makeText(getApplicationContext(), "GPS is disabled", Toast.LENGTH_SHORT).show();
-        } else if(!Utils.isInternetEnabled(this)){
+        } else if (!Utils.isInternetEnabled(this)) {
             Toast.makeText(getApplicationContext(), "No internet connection", Toast.LENGTH_SHORT).show();
         } else {
             connectToGoogleAPI();
@@ -175,7 +172,7 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
     @Override
     public void onConnected(Bundle bundle) {
         Location location = LocationServices.FusedLocationApi.getLastLocation(client);
-        lastLocation = (location == null)? lastLocation: location;
+        lastLocation = (location == null) ? lastLocation : location;
         if (lastLocation == null || isLoctionStale(lastLocation)) {
             LocationServices.FusedLocationApi.requestLocationUpdates(client, getRequest(), this);
         } else {
@@ -204,40 +201,19 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
         createPost();
     }
 
+
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
 
     }
 
-
     private void createPost() {
-        PostCreator creator = new PostCreator();
-        creator.execute(postText);
-    }
-
-
-    /**
-     * An AsyncTask class to create a post
-     */
-    private class PostCreator extends AsyncTask<String, Void, Void> {
-
-        // Get Posts
-        @Override
-        protected Void doInBackground(@NonNull final String... params) {
-            if(lastLocation != null){
-                lng = lastLocation .getLongitude();
-                lat = lastLocation .getLatitude();
-            }
-            Firebase newPostRef = ref.push();
-            QueryPosts newPost = new QueryPosts(lat, lng, params[0], new Date().getTime());
-            newPostRef.setValue(newPost);
-            return null;
-        }
-
-        // Update the list view
-        @Override
-        protected void onPostExecute(Void result) {
-            Toast.makeText(getApplicationContext(), "Post created", Toast.LENGTH_SHORT).show();
-        }
+        //TODO: Refactor; need to listen to post creation event, make sure both entries are created or neither
+        Firebase newPostRef = state.getFireBaseRef().push();
+        QueryPosts newPost = new QueryPosts(postText, new Date().getTime());
+        newPostRef.setValue(newPost);
+        String key = newPostRef.getKey();
+        state.getGeoFireRef().setLocation(key, new GeoLocation(lastLocation.getLatitude(), lastLocation.getLongitude()));
+        Toast.makeText(getApplicationContext(), "Post created",Toast.LENGTH_SHORT ).show();
     }
 }

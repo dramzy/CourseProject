@@ -1,8 +1,6 @@
 package gmu.cs.cs477.courseproject;
 
 public class QueryPosts {
-    double latitude;
-    double longitude;
     String message;
     long timestamp;
 
@@ -10,20 +8,11 @@ public class QueryPosts {
         // empty default constructor, necessary for Firebase to be able to deserialize
     }
 
-    public QueryPosts(double latitude, double longitude, String message, long timestamp){
-        this.latitude = latitude;
-        this.longitude = longitude;
+    public QueryPosts( String message, long timestamp){
         this.message = message;
         this.timestamp = timestamp;
     }
 
-    public double getLatitude(){
-        return latitude;
-    }
-
-    public double getLongitude(){
-        return longitude;
-    }
 
     public String getMessage(){
         return message;
