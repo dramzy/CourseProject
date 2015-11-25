@@ -39,6 +39,7 @@ import java.util.Date;
 
 import static gmu.cs.cs477.courseproject.Constants.*;
 import static gmu.cs.cs477.courseproject.Utils.isLoctionStale;
+import static gmu.cs.cs477.courseproject.Utils.isPostStale;
 
 public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, LocationListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -50,7 +51,8 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     private GoogleApiClient client;
     private ArrayList<Post> posts;
     private ArrayList<String> locationKeys;
-    private AppState state;
+    private Firebase firebaseRef;
+    private GeoFire geofireRef;
     private final int postRangeInMiles = 5;
     private final double postRangeInKm = postRangeInMiles * 1.60934;
 
@@ -89,7 +91,9 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 loadData();
             }
         });
-        state = (AppState) getApplication();
+        final AppState state = (AppState) getApplication();
+        firebaseRef = state.getFireBaseRef();
+        geofireRef = state.getGeoFireRef();
     }
 
     @Override
@@ -161,7 +165,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         } else {
             locationKeys = new ArrayList<>();
             posts = new ArrayList<>();
-            final GeoQuery query = state.getGeoFireRef().queryAtLocation(
+            final GeoQuery query = geofireRef.queryAtLocation(
                     new GeoLocation(lastLocation.getLatitude(), lastLocation.getLongitude()), postRangeInKm);
             query.addGeoQueryEventListener(new GeoQueryEventListener() {
                 @Override
@@ -183,14 +187,19 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 public void onGeoQueryReady() {
                     query.removeGeoQueryEventListener(this);
                     // TODO: Refactor; too much work on the UI thread
-                    for (String key : locationKeys) {
-                        state.getFireBaseRef().child(key).addListenerForSingleValueEvent(new ValueEventListener() {
+                    for (final String key : locationKeys) {
+                        firebaseRef.child(key).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
-                                //TODO: Limit to posts within the past n hours and delete older posts
                                 QueryPosts post = dataSnapshot.getValue(QueryPosts.class);
-                                posts.add(new Post(locationKeys.size() + 1, post.getMessage(), post.getTimestamp()));
-                                if (posts.size() == locationKeys.size()) {
+                                if (isPostStale(post)) {
+                                    firebaseRef.child(key).removeValue();
+                                    geofireRef.removeLocation(key);
+                                } else{
+                                    posts.add(new Post(locationKeys.size() + 1, post.getMessage(), post.getTimestamp()));
+                                }
+                                    locationKeys.remove(key);
+                                if (locationKeys.size() == 0) {
                                     onSuccess();
                                 }
                             }
@@ -212,14 +221,14 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     private void onSuccess(){
-        //TODO: sort posts by timestamp
+        Collections.sort(posts, new PostComparator());
         adapter = new PostAdapter(posts);
         postsList.setAdapter(adapter);
         refreshLayout.setRefreshing(false);
     }
 
     private void onError(FirebaseError error){
-        Log.d("firebase_error", "Could not retreive firebase posts: " + error.getMessage());
+        Log.e("firebase_error", "Could not retreive firebase posts: " + error.getMessage());
         refreshLayout.setRefreshing(false);
         Toast.makeText(getApplicationContext(), "Could not retrieve posts", Toast.LENGTH_SHORT).show();
     }

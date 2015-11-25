@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.common.ConnectionResult;
@@ -33,6 +35,7 @@ import com.google.android.gms.location.LocationServices;
 
 import static gmu.cs.cs477.courseproject.Constants.LOCATION;
 
+import java.util.Comparator;
 import java.util.Date;
 
 import static gmu.cs.cs477.courseproject.Utils.isLoctionStale;
@@ -208,12 +211,30 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
     }
 
     private void createPost() {
-        //TODO: Refactor; need to listen to post creation event, make sure both entries are created or neither
-        Firebase newPostRef = state.getFireBaseRef().push();
+        final Firebase newPostRef = state.getFireBaseRef().push();
         QueryPosts newPost = new QueryPosts(postText, new Date().getTime());
-        newPostRef.setValue(newPost);
-        String key = newPostRef.getKey();
-        state.getGeoFireRef().setLocation(key, new GeoLocation(lastLocation.getLatitude(), lastLocation.getLongitude()));
-        Toast.makeText(getApplicationContext(), "Post created",Toast.LENGTH_SHORT ).show();
+        newPostRef.setValue(newPost, new Firebase.CompletionListener() {
+            @Override
+            public void onComplete(FirebaseError firebaseError, final Firebase firebase) {
+                if (firebaseError == null) {
+                    String key = newPostRef.getKey();
+                    state.getGeoFireRef().setLocation(key, new GeoLocation(lastLocation.getLatitude(), lastLocation.getLongitude()),
+                            new GeoFire.CompletionListener() {
+                                @Override
+                                public void onComplete(String key, FirebaseError error) {
+                                    if (error == null) {
+                                        Toast.makeText(getApplicationContext(), "Post created", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Log.e("firebase_error", "Could not create post: " + error.getMessage());
+                                        Toast.makeText(getApplicationContext(), "Failed to create post", Toast.LENGTH_SHORT).show();
+                                        firebase.child(key).removeValue();
+                                    }
+                                }
+                            });
+                } else {
+                    Log.e("firebase_error", "Could not create post: " + firebaseError.getMessage());
+                }
+            }
+        });
     }
 }
