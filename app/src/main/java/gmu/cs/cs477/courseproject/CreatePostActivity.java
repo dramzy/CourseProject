@@ -94,8 +94,7 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
         input_wrapper.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                inputMethodManager.toggleSoftInputFromWindow(v.getApplicationWindowToken(), InputMethodManager.SHOW_FORCED, 0);
+                showKeyboard();
             }
         });
         lastLocation = getIntent().getParcelableExtra(LOCATION);
@@ -119,6 +118,7 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
             super.onBackPressed();
         }
     }
+
 
 
     @Override
@@ -159,7 +159,20 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
         } else {
             connectToGoogleAPI();
             posting = true;
+            hideKeyboard();
             onBackPressed();
+        }
+    }
+
+    public void showKeyboard(){
+        InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputMethodManager.toggleSoftInputFromWindow(input_wrapper.getApplicationWindowToken(), InputMethodManager.SHOW_IMPLICIT, 0);
+    }
+
+    public void hideKeyboard() {
+        if(getCurrentFocus()!=null) {
+            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            inputMethodManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
         }
     }
 

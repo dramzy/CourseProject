@@ -5,11 +5,11 @@ import android.support.annotation.NonNull;
 import java.util.Date;
 
 public class Post {
-    private long post_ID;
+    private String post_ID;
     private String text;
     private long timestamp;
 
-    public Post(final long post_ID, @NonNull final String text, @NonNull final long timestamp) {
+    public Post(final String post_ID, @NonNull final String text, @NonNull final long timestamp) {
         this.post_ID = post_ID;
         this.text = text;
         this.timestamp = timestamp;
@@ -23,11 +23,11 @@ public class Post {
         this.timestamp = timestamp;
     }
 
-    public long getPost_ID() {
+    public String getPost_ID() {
         return post_ID;
     }
 
-    public void setPost_ID(final long post_ID) {
+    public void setPost_ID(final String post_ID) {
         this.post_ID = post_ID;
     }
 

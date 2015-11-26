@@ -31,7 +31,7 @@ public class PostAdapter extends BaseAdapter implements ListAdapter {
 
     @Override
     public long getItemId(int position) {
-        return posts.get(position).getPost_ID();
+        return position;
     }
 
     @Override
@@ -55,4 +55,9 @@ public class PostAdapter extends BaseAdapter implements ListAdapter {
     public long getPostTime(int position){
         return posts.get(position).getTimestamp();
     }
+
+    public String getPostId(int position) {
+        return posts.get(position).getPost_ID();
+    }
+
 }

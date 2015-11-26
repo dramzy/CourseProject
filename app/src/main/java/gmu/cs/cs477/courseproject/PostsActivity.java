@@ -196,7 +196,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                                     firebaseRef.child(key).removeValue();
                                     geofireRef.removeLocation(key);
                                 } else{
-                                    posts.add(new Post(locationKeys.size() + 1, post.getMessage(), post.getTimestamp()));
+                                    posts.add(new Post(key, post.getMessage(), post.getTimestamp()));
                                 }
                                     locationKeys.remove(key);
                                 if (locationKeys.size() == 0) {
