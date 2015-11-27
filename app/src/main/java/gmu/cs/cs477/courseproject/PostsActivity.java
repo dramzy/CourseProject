@@ -186,6 +186,9 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 @Override
                 public void onGeoQueryReady() {
                     query.removeGeoQueryEventListener(this);
+                    if (locationKeys.size() == 0){
+                        refreshLayout.setRefreshing(false);
+                    }
                     // TODO: Refactor; too much work on the UI thread
                     for (final String key : locationKeys) {
                         firebaseRef.child(key).addListenerForSingleValueEvent(new ValueEventListener() {
