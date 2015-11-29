@@ -71,7 +71,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
             public void onClick(View v) {
                 Intent intent = new Intent(PostsActivity.this, CreatePostActivity.class);
                 intent.putExtra(LOCATION, lastLocation);
-                startActivity(intent);
+                startActivityForResult(intent, 0);
             }
         });
         postsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -84,6 +84,13 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
             }
         });
         lastLocation = getIntent().getParcelableExtra(LOCATION);
+        final AppState state = (AppState) getApplication();
+        firebaseRef = state.getFireBaseRef();
+        geofireRef = state.getGeoFireRef();
+        autoRefresh();
+    }
+
+    private void autoRefresh() {
         refreshLayout.post(new Runnable() {
             @Override
             public void run() {
@@ -91,14 +98,17 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 loadData();
             }
         });
-        final AppState state = (AppState) getApplication();
-        firebaseRef = state.getFireBaseRef();
-        geofireRef = state.getGeoFireRef();
     }
 
     @Override
     public void onRefresh() {
         loadData();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 0 && data != null && data.hasExtra(NEW_POST))
+            autoRefresh();
     }
 
     private void loadData() {
@@ -141,6 +151,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
         return locationRequest;
     }
+
     @Override
     public void onConnectionSuspended(int i) {
 
@@ -186,7 +197,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 @Override
                 public void onGeoQueryReady() {
                     query.removeGeoQueryEventListener(this);
-                    if (locationKeys.size() == 0){
+                    if (locationKeys.size() == 0) {
                         refreshLayout.setRefreshing(false);
                     }
                     // TODO: Refactor; too much work on the UI thread
@@ -198,10 +209,10 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                                 if (isPostStale(post)) {
                                     firebaseRef.child(key).removeValue();
                                     geofireRef.removeLocation(key);
-                                } else{
+                                } else {
                                     posts.add(new Post(key, post.getMessage(), post.getTimestamp()));
                                 }
-                                    locationKeys.remove(key);
+                                locationKeys.remove(key);
                                 if (locationKeys.size() == 0) {
                                     onSuccess();
                                 }
@@ -223,14 +234,14 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         }
     }
 
-    private void onSuccess(){
+    private void onSuccess() {
         Collections.sort(posts, new PostComparator());
         adapter = new PostAdapter(posts);
         postsList.setAdapter(adapter);
         refreshLayout.setRefreshing(false);
     }
 
-    private void onError(FirebaseError error){
+    private void onError(FirebaseError error) {
         Log.e("firebase_error", "Could not retreive firebase posts: " + error.getMessage());
         refreshLayout.setRefreshing(false);
         Toast.makeText(getApplicationContext(), "Could not retrieve posts", Toast.LENGTH_SHORT).show();

@@ -3,6 +3,7 @@ package gmu.cs.cs477.courseproject;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
@@ -38,6 +39,7 @@ import static gmu.cs.cs477.courseproject.Constants.LOCATION;
 import java.util.Comparator;
 import java.util.Date;
 
+import static gmu.cs.cs477.courseproject.Constants.NEW_POST;
 import static gmu.cs.cs477.courseproject.Utils.isLoctionStale;
 
 public class CreatePostActivity extends AppCompatActivity implements LocationListener,
@@ -120,7 +122,6 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
     }
 
 
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_create_post, menu);
@@ -131,20 +132,7 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
-                if (!post.getText().toString().equals("")) {
-                    new AlertDialog.Builder(CreatePostActivity.this)
-                            .setMessage("Do you want to discard post?")
-                            .setCancelable(false)
-                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int id) {
-                                    NavUtils.navigateUpFromSameTask(CreatePostActivity.this);
-                                }
-                            })
-                            .setNegativeButton("No", null)
-                            .show();
-                } else {
-                    NavUtils.navigateUpFromSameTask(this);
-                }
+                onBackPressed();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -158,19 +146,25 @@ public class CreatePostActivity extends AppCompatActivity implements LocationLis
             Toast.makeText(getApplicationContext(), "No internet connection", Toast.LENGTH_SHORT).show();
         } else {
             connectToGoogleAPI();
-            posting = true;
-            hideKeyboard();
-            onBackPressed();
+            sendPostBack();
         }
     }
 
-    public void showKeyboard(){
+    private void sendPostBack() {
+        hideKeyboard();
+        Intent intent = new Intent();
+        intent.putExtra(NEW_POST, true);
+        setResult(0, intent);
+        finish();
+    }
+
+    public void showKeyboard() {
         InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         inputMethodManager.toggleSoftInputFromWindow(input_wrapper.getApplicationWindowToken(), InputMethodManager.SHOW_IMPLICIT, 0);
     }
 
     public void hideKeyboard() {
-        if(getCurrentFocus()!=null) {
+        if (getCurrentFocus() != null) {
             InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
             inputMethodManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
         }
