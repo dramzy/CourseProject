@@ -223,7 +223,8 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                     if (locationKeys.size() == 0) {
                         refreshLayout.setRefreshing(false);
                     }
-                    // TODO: Refactor; too much work on the UI thread
+                    // TODO: Should this br done off the UI thread? Where
+                    // would the listeners run?
                     for (final String key : locationKeys) {
                         // For each location post, retreive its post details
                         firebaseRef.child(key).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -265,12 +266,22 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     private void onSuccess() {
-        // TODO: Refactor; too much work on the UI thread
-        // On success, sort posts by timestamp, fill the listview and stop refreshing
-        Collections.sort(posts, new PostComparator());
-        adapter = new PostAdapter(posts);
-        postsList.setAdapter(adapter);
-        refreshLayout.setRefreshing(false);
+        // On success, sort posts by timestamp, fill the listview and stop refreshing.
+        // Uses AsyncTask to prevent blocking the UI
+        new AsyncTask<Void, Void, Void>(){
+
+            @Override
+            protected Void doInBackground(Void... params) {
+                Collections.sort(posts, new PostComparator());
+                return null;
+            }
+            @Override
+            protected void onPostExecute(Void param){
+                adapter = new PostAdapter(posts);
+                postsList.setAdapter(adapter);
+                refreshLayout.setRefreshing(false);
+            }
+        }.execute();
     }
 
     private void onError(FirebaseError error) {
