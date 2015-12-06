@@ -40,9 +40,10 @@ import java.util.Date;
 import static gmu.cs.cs477.courseproject.Constants.*;
 import static gmu.cs.cs477.courseproject.Utils.isLoctionStale;
 import static gmu.cs.cs477.courseproject.Utils.isPostStale;
-
+// Displays a list view with all recent posts in it
 public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, LocationListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+    // Activity components and state
     private SwipeRefreshLayout refreshLayout;
     private ListView postsList;
     private PostAdapter adapter;
@@ -53,6 +54,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     private ArrayList<String> locationKeys;
     private Firebase firebaseRef;
     private GeoFire geofireRef;
+    // Calculate the radius for posts to be displayed
     private final int postRangeInMiles = 5;
     private final double postRangeInKm = postRangeInMiles * 1.60934;
 
@@ -61,10 +63,14 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_posts);
+        //Get the UI elements
         refreshLayout = (SwipeRefreshLayout) findViewById(R.id.refreshLayout);
         postsList = (ListView) findViewById(R.id.postsList);
         refreshLayout.setOnRefreshListener(this);
+        // Sets color scheme for loading animation
         refreshLayout.setColorSchemeColors(Color.rgb(135, 206, 250), Color.rgb(135, 206, 235), Color.rgb(0, 191, 255));
+        // Add floating action button onClick listener to go to
+        // create post activity
         fab = (FloatingActionButton) findViewById(R.id.actionButton);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -74,6 +80,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 startActivityForResult(intent, 0);
             }
         });
+        // Display post in view post activity when clicked on
         postsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -83,7 +90,9 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 startActivity(intent);
             }
         });
+        // Get last known location (from splash screen)
         lastLocation = getIntent().getParcelableExtra(LOCATION);
+        // Get backend references
         final AppState state = (AppState) getApplication();
         firebaseRef = state.getFireBaseRef();
         geofireRef = state.getGeoFireRef();
@@ -91,6 +100,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     private void autoRefresh() {
+        // Programatically refresh listview
         refreshLayout.post(new Runnable() {
             @Override
             public void run() {
@@ -107,11 +117,13 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check if new post is created by user and refresh posts
         if (requestCode == 0 && data != null && data.hasExtra(NEW_POST))
             autoRefresh();
     }
 
     private void loadData() {
+        // Check if GPS is enabled and fetch posts
         if (Utils.isGPSEnabled(this)) {
             if (lastLocation == null || isLoctionStale(lastLocation)) {
                 connectToGoogleAPI();
@@ -124,6 +136,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         }
     }
 
+    // Connects to the Google API's location service
     protected synchronized void connectToGoogleAPI() {
         client = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -135,6 +148,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
     @Override
     public void onConnected(Bundle bundle) {
+        // If current location is stale listen for location updates
         Location location = LocationServices.FusedLocationApi.getLastLocation(client);
         lastLocation = (location == null) ? lastLocation : location;
         if (lastLocation == null || isLoctionStale(lastLocation)) {
@@ -145,6 +159,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     protected LocationRequest getRequest() {
+        // Create the Google API location request
         LocationRequest locationRequest = new LocationRequest();
         locationRequest.setInterval(0);
         locationRequest.setFastestInterval(0);
@@ -159,6 +174,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
     @Override
     public void onLocationChanged(Location location) {
+        // Once location update is received remove listener and retrieve posts
         lastLocation = location;
         LocationServices.FusedLocationApi.removeLocationUpdates(client, this);
         getPosts();
@@ -170,17 +186,22 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     private void getPosts() {
+        // Check if internet is enabled first
         if (!Utils.isInternetEnabled(getApplicationContext())) {
             Toast.makeText(getApplicationContext(), "No internet connection", Toast.LENGTH_SHORT).show();
             refreshLayout.setRefreshing(false);
         } else {
+            // Retreive posts by first fetching post locations near current locations
+            // and then fetching the post details for those posts
             locationKeys = new ArrayList<>();
             posts = new ArrayList<>();
+            // Get post locations in range
             final GeoQuery query = geofireRef.queryAtLocation(
                     new GeoLocation(lastLocation.getLatitude(), lastLocation.getLongitude()), postRangeInKm);
             query.addGeoQueryEventListener(new GeoQueryEventListener() {
                 @Override
                 public void onKeyEntered(String key, GeoLocation location) {
+                    // Once a post location is received add it to the list
                     locationKeys.add(key);
                 }
 
@@ -196,22 +217,31 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
                 @Override
                 public void onGeoQueryReady() {
+                    // Once all posts locations are retrieved, remove listener
                     query.removeGeoQueryEventListener(this);
+                    // If no posts stop refreshing
                     if (locationKeys.size() == 0) {
                         refreshLayout.setRefreshing(false);
                     }
                     // TODO: Refactor; too much work on the UI thread
                     for (final String key : locationKeys) {
+                        // For each location post, retreive its post details
                         firebaseRef.child(key).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
+                                // Create a post object out of the details
                                 QueryPosts post = dataSnapshot.getValue(QueryPosts.class);
+                                // If post is stale, delete it. This should be done server side,
+                                // but we don't have one
                                 if (isPostStale(post)) {
                                     firebaseRef.child(key).removeValue();
                                     geofireRef.removeLocation(key);
                                 } else {
+                                    //Otherwise, add it to the list of post details
                                     posts.add(new Post(key, post.getMessage(), post.getTimestamp()));
                                 }
+                                // Remove post location, if details have been fetched and
+                                // once all posts are fetched, call onSucces
                                 locationKeys.remove(key);
                                 if (locationKeys.size() == 0) {
                                     onSuccess();
@@ -235,6 +265,8 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     private void onSuccess() {
+        // TODO: Refactor; too much work on the UI thread
+        // On success, sort posts by timestamp, fill the listview and stop refreshing
         Collections.sort(posts, new PostComparator());
         adapter = new PostAdapter(posts);
         postsList.setAdapter(adapter);
@@ -242,6 +274,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     private void onError(FirebaseError error) {
+        //On error, stop refreshing and dislay error
         Log.e("firebase_error", "Could not retreive firebase posts: " + error.getMessage());
         refreshLayout.setRefreshing(false);
         Toast.makeText(getApplicationContext(), "Could not retrieve posts", Toast.LENGTH_SHORT).show();

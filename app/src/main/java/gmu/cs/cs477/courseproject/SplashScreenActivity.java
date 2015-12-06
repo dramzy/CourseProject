@@ -21,7 +21,7 @@ import com.google.android.gms.location.LocationServices;
 import static gmu.cs.cs477.courseproject.Utils.isLoctionStale;
 import static gmu.cs.cs477.courseproject.Constants.*;
 
-
+// Splash screen used to mask the initial delay of getting a fix on the user's location
 public class SplashScreenActivity extends AppCompatActivity implements LocationListener,
         ConnectionCallbacks, OnConnectionFailedListener {
 
@@ -32,6 +32,7 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Display the splash screen animation
         getSupportActionBar().hide();
         setContentView(R.layout.activity_splash_screen);
         ImageView iv = (ImageView) findViewById(R.id.loadingAnimation);
@@ -41,6 +42,7 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
         checkGPS();
     }
 
+    // Connect to the Google API's location services
     protected synchronized void connectToGoogleAPI() {
         client = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -50,10 +52,13 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
         client.connect();
     }
 
+
     private void checkGPS() {
         if (Utils.isGPSEnabled(this)) {
             connectToGoogleAPI();
         } else {
+            // If GPS is disabled, ask user to enable it and
+            // take them to the appropriate settings page
             new AlertDialog.Builder(this)
                     .setMessage("GPS is disabled. Do you want to enable it?")
                     .setCancelable(false)
@@ -68,8 +73,10 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             if (Utils.isGPSEnabled(SplashScreenActivity.this)) {
+                                // If the user enabled GPS themselves, get the location
                                 checkGPS();
                             } else {
+                                // Otherwise, give up and go to main activity
                                 leave();
                             }
                         }
@@ -78,6 +85,7 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
     }
 
     private void leave() {
+        // Go to main activity
         Intent intent = new Intent(this, PostsActivity.class);
         intent.putExtra(LOCATION, lastLocation);
         startActivity(intent);
@@ -87,6 +95,7 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
     @Override
     public void onResume() {
         super.onResume();
+        // If the user chose to enable GPS, check for GPS again
         if (enablingGPSManually) {
             checkGPS();
         }
@@ -105,6 +114,7 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
 
     @Override
     public void onConnected(Bundle bundle) {
+        // If current location is stale listen for location updates
         lastLocation = LocationServices.FusedLocationApi.getLastLocation(client);
         if (lastLocation == null || isLoctionStale(lastLocation)) {
             LocationServices.FusedLocationApi.requestLocationUpdates(client, getRequest(), this);
@@ -115,6 +125,7 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
     }
 
     protected LocationRequest getRequest() {
+        // Create the Google API location request
         LocationRequest locationRequest = new LocationRequest();
         locationRequest.setInterval(0);
         locationRequest.setFastestInterval(0);
@@ -130,6 +141,7 @@ public class SplashScreenActivity extends AppCompatActivity implements LocationL
 
     @Override
     public void onLocationChanged(Location location) {
+        // Once location fix is obtained, remove listener and stop the animation
         leave();
         LocationServices.FusedLocationApi.removeLocationUpdates(client, this);
     }

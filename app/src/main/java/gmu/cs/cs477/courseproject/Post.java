@@ -4,6 +4,7 @@ import android.support.annotation.NonNull;
 
 import java.util.Date;
 
+// Represents a post for display purposes
 public class Post {
     private String post_ID;
     private String text;

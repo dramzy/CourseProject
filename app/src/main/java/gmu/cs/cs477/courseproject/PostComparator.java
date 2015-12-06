@@ -3,6 +3,7 @@ package gmu.cs.cs477.courseproject;
 
 import java.util.Comparator;
 
+// Comparator for sorting posts by date
 public class PostComparator implements Comparator<Post>{
     @Override
     public int compare(Post lhs, Post rhs) {

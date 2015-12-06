@@ -13,6 +13,7 @@ import gmu.cs.cs477.courseproject.R;
 
 import static gmu.cs.cs477.courseproject.Constants.*;
 
+// Displays a single post
 public class ViewPostActivity extends AppCompatActivity {
 
     TextView postDetails;
@@ -23,6 +24,7 @@ public class ViewPostActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view_post);
         Intent intent = getIntent();
+        // Get UI elements
         postDetails = (TextView) findViewById(R.id.post_details);
         postTime = (TextView) findViewById(R.id.post_time);
         postDetails.setText(intent.getStringExtra(POST_TEXT));

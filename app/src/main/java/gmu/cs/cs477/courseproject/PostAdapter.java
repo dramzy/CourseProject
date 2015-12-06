@@ -12,6 +12,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Date;
 
+// Adapter from posts to listview
 public class PostAdapter extends BaseAdapter implements ListAdapter {
     private final ArrayList<Post> posts;
 
@@ -36,6 +37,7 @@ public class PostAdapter extends BaseAdapter implements ListAdapter {
 
     @Override
     public View getView(int position, View view, ViewGroup parent) {
+        //Create view from post
         if (view == null) {
             LayoutInflater inflater = (LayoutInflater) parent.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             view = inflater.inflate(R.layout.post_line, parent, false);
